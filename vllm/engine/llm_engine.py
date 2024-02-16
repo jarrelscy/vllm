@@ -131,9 +131,10 @@ class LLMEngine:
             initialize_ray_cluster(parallel_config)
             from vllm.executor.ray_gpu_executor import RayGPUExecutor
             executor_class = RayGPUExecutor
+        elif parallel_config.world_size > 1:
+            from vllm.executor.multi_gpu_executor import MultiGPUExecutor
+            executor_class = MultiGPUExecutor
         else:
-            assert parallel_config.world_size == 1, (
-                "Ray is required if parallel_config.world_size > 1.")
             from vllm.executor.gpu_executor import GPUExecutor
             executor_class = GPUExecutor
 
@@ -147,6 +148,11 @@ class LLMEngine:
         # This is to ensure that the LLMEngine is not referenced in
         # the closure used to initialize Ray worker actors
         raise RuntimeError("LLMEngine should not be pickled!")
+
+    def __del__(self):
+        # Shutdown model executor when engine is garbage collected
+        if self.model_executor is not None:
+            self.model_executor.shutdown()
 
     def get_tokenizer(self) -> "PreTrainedTokenizer":
         return self.tokenizer.get_lora_tokenizer()
