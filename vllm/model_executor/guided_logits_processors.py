@@ -101,7 +101,7 @@ class JSONLogitsProcessor(RegexLogitsProcessor):
     def __init__(self,
                  schema: Union[str, Dict, BaseModel],
                  tokenizer,
-                 whitespace_pattern: Optional[str] = None):
+                 whitespace_pattern: Optional[str] = r" ?"):
         """Compile the FSM that drives the JSON-guided generation.
 
         Parameters
