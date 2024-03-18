@@ -81,15 +81,20 @@ class BaseLogitsProcessor:
 
         seq_id = hash(tuple(input_ids))
 
+        allowed_tokens = None
         if len(input_ids) == 0:
             self.init_state()
         else:
             last_token = input_ids[-1]
             last_seq_id = hash(tuple(input_ids[:-1]))
-            self.fsm_state[seq_id] = self.fsm.next_state(
-                self.fsm_state[last_seq_id], last_token)
+            if self.fsm_state[last_seq_id] == -1:
+                allowed_tokens = [self.fsm.eos_token_id]
+            else:
+                self.fsm_state[seq_id] = self.fsm.next_state(
+                    self.fsm_state[last_seq_id], last_token)
 
-        allowed_tokens = self.fsm.allowed_token_ids(self.fsm_state[seq_id])
+        if allowed_tokens is None:
+            allowed_tokens = self.fsm.allowed_token_ids(self.fsm_state[seq_id])
 
         mask = torch.full((scores.shape[-1], ),
                           -math.inf,
