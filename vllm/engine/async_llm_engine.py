@@ -330,8 +330,9 @@ class AsyncLLMEngine:
             from vllm.executor.ray_gpu_executor import RayGPUExecutorAsync
             executor_class = RayGPUExecutorAsync
         elif parallel_config.world_size > 1:
-            from vllm.executor.multi_gpu_executor import MultiGPUExecutorAsync
-            executor_class = MultiGPUExecutorAsync
+            from vllm.executor.multiproc_gpu_executor import (
+                MultiProcGPUExecutorAsync)
+            executor_class = MultiProcGPUExecutorAsync
         else:
             from vllm.executor.gpu_executor import GPUExecutorAsync
             executor_class = GPUExecutorAsync

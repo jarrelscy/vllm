@@ -132,8 +132,9 @@ class LLMEngine:
             from vllm.executor.ray_gpu_executor import RayGPUExecutor
             executor_class = RayGPUExecutor
         elif parallel_config.world_size > 1:
-            from vllm.executor.multi_gpu_executor import MultiGPUExecutor
-            executor_class = MultiGPUExecutor
+            from vllm.executor.multiproc_gpu_executor import (
+                MultiProcGPUExecutor)
+            executor_class = MultiProcGPUExecutor
         else:
             from vllm.executor.gpu_executor import GPUExecutor
             executor_class = GPUExecutor

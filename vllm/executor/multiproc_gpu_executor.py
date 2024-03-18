@@ -14,6 +14,7 @@ logger = init_logger(__name__)
 
 
 class MultiProcGPUExecutor(MultiGPUExecutor):
+    """Python multiprocessing-based multi-GPU executor"""
 
     def _init_executor(self) -> None:
         # Create the parallel GPU workers.
