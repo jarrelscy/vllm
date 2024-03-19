@@ -23,7 +23,8 @@ from pydantic import BaseModel
 from transformers import PreTrainedTokenizerBase
 from outlines.fsm.fsm import RegexFSM, CFGFSM
 from outlines.fsm.json_schema import build_regex_from_schema
-
+import logging
+logger = logging.getLogger(__name__)
 
 class BaseLogitsProcessor:
 
@@ -90,8 +91,12 @@ class BaseLogitsProcessor:
             if self.fsm_state[last_seq_id] == -1:
                 allowed_tokens = [self.fsm.eos_token_id]
             else:
-                self.fsm_state[seq_id] = self.fsm.next_state(
-                    self.fsm_state[last_seq_id], last_token)
+                try:
+                    self.fsm_state[seq_id] = self.fsm.next_state(
+                        self.fsm_state[last_seq_id], last_token)
+                except KeyError as e:
+                    logger.warning("KeyError in FSM, overriding to EOS: %s", e)
+                    allowed_tokens = [self.fsm.eos_token_id]
 
         if allowed_tokens is None:
             allowed_tokens = self.fsm.allowed_token_ids(self.fsm_state[seq_id])
