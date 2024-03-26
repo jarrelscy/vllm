@@ -16,15 +16,16 @@
 import json
 import math
 from collections import defaultdict
-from typing import Union, DefaultDict, Dict, List, Optional, Callable
+from typing import Callable, DefaultDict, Dict, List, Optional, Union
 
 import torch
+from outlines.fsm.fsm import CFGFSM, RegexFSM
+from outlines.fsm.json_schema import build_regex_from_schema
 from pydantic import BaseModel
 from transformers import PreTrainedTokenizerBase
-from outlines.fsm.fsm import RegexFSM, CFGFSM
-from outlines.fsm.json_schema import build_regex_from_schema
 import logging
 logger = logging.getLogger(__name__)
+
 
 class BaseLogitsProcessor:
 
