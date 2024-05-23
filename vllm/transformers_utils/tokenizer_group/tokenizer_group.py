@@ -4,11 +4,11 @@ from transformers import PreTrainedTokenizer
 
 from vllm.lora.request import LoRARequest
 from vllm.transformers_utils.tokenizer import (get_lora_tokenizer,
-                                               get_lora_tokenizer_async)
+                                               get_lora_tokenizer_async,
+                                               get_tokenizer)
 from vllm.transformers_utils.tokenizer_group.base_tokenizer_group import (
     BaseTokenizerGroup)
 from vllm.utils import LRUCache
-from vllm.transformers_utils.tokenizer import get_tokenizer
 
 
 class TokenizerGroup(BaseTokenizerGroup):
@@ -21,10 +21,8 @@ class TokenizerGroup(BaseTokenizerGroup):
         self.enable_lora = enable_lora
         self.max_input_length = max_input_length
         self.tokenizer = get_tokenizer(self.tokenizer_id, **tokenizer_config)
-        if enable_lora:
-            self.lora_tokenizers = LRUCache(capacity=max_num_seqs)
-        else:
-            self.lora_tokenizers = None
+        self.lora_tokenizers = LRUCache[PreTrainedTokenizer](
+            capacity=max_num_seqs) if enable_lora else None
 
     def ping(self) -> bool:
         """Check if the tokenizer group is alive."""
@@ -36,12 +34,26 @@ class TokenizerGroup(BaseTokenizerGroup):
         """Get the maximum input length for the LoRA request."""
         return self.max_input_length
 
+    def _raise_if_input_too_long(self,
+                                 encoded_tokens: List[str],
+                                 lora_request: Optional[LoRARequest] = None):
+        input_length = len(encoded_tokens)
+        if lora_request:
+            max_input_length = (lora_request.long_lora_max_len
+                                or self.max_input_length)
+        else:
+            max_input_length = self.max_input_length
+        if max_input_length is not None and input_length > max_input_length:
+            raise ValueError("Input too long.", input_length, max_input_length)
+
     def encode(self,
                prompt: str,
                request_id: Optional[str] = None,
                lora_request: Optional[LoRARequest] = None) -> List[int]:
         tokenizer = self.get_lora_tokenizer(lora_request)
-        return tokenizer.encode(prompt)
+        ret = tokenizer.encode(prompt)
+        self._raise_if_input_too_long(ret, lora_request)
+        return ret
 
     async def encode_async(
             self,
@@ -49,7 +61,9 @@ class TokenizerGroup(BaseTokenizerGroup):
             request_id: Optional[str] = None,
             lora_request: Optional[LoRARequest] = None) -> List[int]:
         tokenizer = await self.get_lora_tokenizer_async(lora_request)
-        return tokenizer.encode(prompt)
+        ret = tokenizer.encode(prompt)
+        self._raise_if_input_too_long(ret, lora_request)
+        return ret
 
     def get_lora_tokenizer(
             self,
