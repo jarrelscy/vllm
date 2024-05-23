@@ -104,7 +104,8 @@ class BaseLogitsProcessor:
         mask = torch.full((scores.shape[-1], ),
                           -math.inf,
                           device=scores.device)
-        mask[allowed_tokens] = 0
+        allowed_tokens = torch.Tensor(allowed_tokens).long().to(mask.device)
+        mask.index_fill_(0, allowed_tokens, 0)
         scores.add_(mask)
 
         return scores
