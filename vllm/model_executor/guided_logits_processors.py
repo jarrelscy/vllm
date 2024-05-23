@@ -17,7 +17,7 @@ import json
 import math
 from collections import defaultdict
 from typing import Callable, DefaultDict, Dict, List, Optional, Union
-
+import numpy as np
 import torch
 from outlines.fsm.fsm import CFGFSM, RegexFSM
 from outlines.fsm.json_schema import build_regex_from_schema
@@ -102,11 +102,21 @@ class BaseLogitsProcessor:
         if allowed_tokens is None:
             allowed_tokens = self.fsm.allowed_token_ids(self.fsm_state[seq_id])
 
-        mask = torch.full((scores.shape[-1], ),
-                          -math.inf,
-                          device=scores.device)
-        mask[allowed_tokens] = 0
-        scores.add_(mask)
+        if len(allowed_tokens) < scores.shape[-1] // 2:
+            mask = torch.full((scores.shape[-1], ),
+                              -math.inf,
+                              device=scores.device)
+            torch_indices = torch.from_numpy(np.array(allowed_tokens, dtype=np.int64)).long().to(mask.device)
+            mask.index_fill_(0, torch_indices, 0)
+            scores.add_(mask)
+        else:
+            mask = torch.full((scores.shape[-1], ),
+                              0,
+                              device=scores.device)
+            torch_indices = torch.from_numpy(np.array(allowed_tokens, dtype=np.int64)).long().to(mask.device)
+            mask.index_fill_(0, torch_indices, -math.inf)
+            scores.add_(mask)
+            
 
         return scores
 
