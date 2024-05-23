@@ -76,6 +76,7 @@ class BaseLogitsProcessor:
     def init_state(self):
         """Initialize the FSM states."""
         self.fsm_state: DefaultDict[int, int] = defaultdict(int)
+        self.all_states = None
 
     def __call__(self, input_ids: List[int],
                  scores: torch.Tensor) -> torch.Tensor:
@@ -101,7 +102,10 @@ class BaseLogitsProcessor:
 
         if allowed_tokens is None:
             allowed_tokens = self.fsm.allowed_token_ids(self.fsm_state[seq_id])
-
+            
+        if self.all_states is None:
+            self.all_states = set(range(scores.shape[-1]))
+            
         if len(allowed_tokens) < scores.shape[-1] // 2:
             mask = torch.full((scores.shape[-1], ),
                               -math.inf,
@@ -110,10 +114,11 @@ class BaseLogitsProcessor:
             mask.index_fill_(0, torch_indices, 0)
             scores.add_(mask)
         else:
+            banned_tokens = list(dst - set(allowed_tokens))
             mask = torch.full((scores.shape[-1], ),
                               0,
                               device=scores.device)
-            torch_indices = torch.from_numpy(np.array(allowed_tokens, dtype=np.int64)).long().to(mask.device)
+            torch_indices = torch.from_numpy(np.array(banned_tokens, dtype=np.int64)).long().to(mask.device)
             mask.index_fill_(0, torch_indices, -math.inf)
             scores.add_(mask)
             
