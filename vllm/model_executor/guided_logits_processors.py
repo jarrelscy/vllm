@@ -83,7 +83,7 @@ class BaseLogitsProcessor:
         """Use the FSM to bias the logits before sampling the next token."""
 
         seq_id = hash(tuple(input_ids))
-
+        
         allowed_tokens = None
         if len(input_ids) == 0:
             self.init_state()
@@ -114,7 +114,7 @@ class BaseLogitsProcessor:
             mask.index_fill_(0, torch_indices, 0)
             scores.add_(mask)
         else:
-            banned_tokens = list(dst - set(allowed_tokens))
+            banned_tokens = list(self.all_states - set(allowed_tokens))
             mask = torch.full((scores.shape[-1], ),
                               0,
                               device=scores.device)
