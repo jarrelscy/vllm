@@ -105,7 +105,7 @@ class BaseLogitsProcessor:
             
         if self.all_states is None:
             self.all_states = set(range(scores.shape[-1]))
-            
+        print (len(allowed_tokens))    
         if len(allowed_tokens) < scores.shape[-1] // 2:
             mask = torch.full((scores.shape[-1], ),
                               -math.inf,
